@@ -1,0 +1,22 @@
+backend/.venv/
+backend/data/
+__pycache__/
+.pytest_cache/
+frontend/node_modules/
+frontend/.next/
+frontend/public/pdf.worker.min.mjs
+*.log
+frontend/public/cmaps/
+frontend/public/standard_fonts/
+
+# 构建产物 / 本机数据 / 密钥
+frontend/.next*/
+*.tsbuildinfo
+*.dpapi
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+.claude/
+*.pem

@@ -1,0 +1,371 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   外观系统
+   --------------------------------------------------------------------------
+   <html> 上有这些属性（由 stores/appearance.ts 和首屏脚本写入）：
+     data-theme="indigo|ocean|forest|sakura|sunset|paper|midnight|deepsea|graphite"
+     data-mode="light|dark"          决定明度曲线
+     data-font-ui / data-font-read   界面字体 / 阅读字体
+     data-size="sm|md|lg|xl"         全局字号（缩放 rem）
+     data-radius="sharp|md|round"    圆角
+     data-pdf="inv|norm"             PDF 页面是否反色
+
+   项目里的“主色”一律用 Tailwind 的 indigo-*、“辅色”用 violet-*、中性色用 slate-*，
+   这里用少量变量重新定义这三套色阶，所以几百处现有的 class 不用改就能整体换肤：
+     --ah/--ac  主色相 / 饱和度倍率      --bh  辅色相
+     --nh/--nc  中性色相 / 饱和度倍率
+   ========================================================================== */
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-page: var(--page);
+  --color-ink: var(--ink);
+  --color-ink-fg: var(--ink-fg);
+  --font-sans: var(--font-ui);
+  --font-mono: var(--f-code);
+}
+
+/* ---------- 默认：靛蓝 · 浅色 ---------- */
+:root {
+  color-scheme: light;
+  --ah: 277;
+  --ac: 1;
+  --bh: 300;
+  --nh: 258;
+  --nc: 1;
+
+  /* 表面 */
+  --page: oklch(0.968 calc(0.01 * var(--nc)) var(--nh));
+  --surface: oklch(0.997 calc(0.003 * var(--nc)) var(--nh));
+  --ink: oklch(0.21 calc(0.04 * var(--nc)) var(--nh));
+  --ink-fg: #fff;
+  --code-bg: oklch(0.2 calc(0.035 * var(--nc)) var(--nh));
+  --code-fg: oklch(0.93 0.01 var(--nh));
+  --canvas-dot: oklch(0.86 calc(0.012 * var(--nc)) var(--nh));
+
+  /* 学习热力图 5 档 */
+  --heat-0: oklch(0.955 calc(0.008 * var(--nc)) var(--nh));
+  --heat-1: oklch(0.87 calc(0.065 * var(--ac)) var(--ah));
+  --heat-2: oklch(0.74 calc(0.13 * var(--ac)) var(--ah));
+  --heat-3: oklch(0.6 calc(0.2 * var(--ac)) var(--ah));
+  --heat-4: oklch(0.46 calc(0.22 * var(--ac)) var(--ah));
+
+  /* 主色（项目里的 indigo-*） */
+  --color-indigo-50: oklch(0.962 calc(0.018 * var(--ac)) var(--ah));
+  --color-indigo-100: oklch(0.93 calc(0.034 * var(--ac)) var(--ah));
+  --color-indigo-200: oklch(0.87 calc(0.065 * var(--ac)) var(--ah));
+  --color-indigo-300: oklch(0.785 calc(0.115 * var(--ac)) var(--ah));
+  --color-indigo-400: oklch(0.673 calc(0.182 * var(--ac)) var(--ah));
+  --color-indigo-500: oklch(0.585 calc(0.233 * var(--ac)) var(--ah));
+  --color-indigo-600: oklch(0.511 calc(0.262 * var(--ac)) var(--ah));
+  --color-indigo-700: oklch(0.457 calc(0.24 * var(--ac)) var(--ah));
+  --color-indigo-800: oklch(0.398 calc(0.195 * var(--ac)) var(--ah));
+  --color-indigo-900: oklch(0.359 calc(0.144 * var(--ac)) var(--ah));
+  --color-indigo-950: oklch(0.257 calc(0.09 * var(--ac)) var(--ah));
+
+  /* 辅色（violet-*，用于渐变和概念卡） */
+  --color-violet-50: oklch(0.969 calc(0.016 * var(--ac)) var(--bh));
+  --color-violet-100: oklch(0.943 calc(0.029 * var(--ac)) var(--bh));
+  --color-violet-200: oklch(0.894 calc(0.057 * var(--ac)) var(--bh));
+  --color-violet-300: oklch(0.811 calc(0.111 * var(--ac)) var(--bh));
+  --color-violet-400: oklch(0.702 calc(0.183 * var(--ac)) var(--bh));
+  --color-violet-500: oklch(0.606 calc(0.25 * var(--ac)) var(--bh));
+  --color-violet-600: oklch(0.541 calc(0.281 * var(--ac)) var(--bh));
+  --color-violet-700: oklch(0.491 calc(0.27 * var(--ac)) var(--bh));
+  --color-violet-800: oklch(0.432 calc(0.232 * var(--ac)) var(--bh));
+  --color-violet-900: oklch(0.38 calc(0.189 * var(--ac)) var(--bh));
+
+  /* 中性色（slate-*：文字、边框、底色） */
+  --color-slate-50: oklch(0.984 calc(0.003 * var(--nc)) var(--nh));
+  --color-slate-100: oklch(0.968 calc(0.007 * var(--nc)) var(--nh));
+  --color-slate-200: oklch(0.929 calc(0.013 * var(--nc)) var(--nh));
+  --color-slate-300: oklch(0.869 calc(0.022 * var(--nc)) var(--nh));
+  /* Tailwind 默认的 slate-400 在白底上对比度只有约 2.6，弱化文字/占位符看不清，这里压深一点（≥3.4） */
+  --color-slate-400: oklch(0.645 calc(0.04 * var(--nc)) var(--nh));
+  --color-slate-500: oklch(0.554 calc(0.046 * var(--nc)) var(--nh));
+  --color-slate-600: oklch(0.446 calc(0.043 * var(--nc)) var(--nh));
+  --color-slate-700: oklch(0.372 calc(0.044 * var(--nc)) var(--nh));
+  --color-slate-800: oklch(0.279 calc(0.041 * var(--nc)) var(--nh));
+  --color-slate-900: oklch(0.208 calc(0.042 * var(--nc)) var(--nh));
+  --color-slate-950: oklch(0.129 calc(0.042 * var(--nc)) var(--nh));
+
+  /* 橙色 600 在 orange-50 / 白底上对比度偏低（连胜徽章用到），略微压深 */
+  --color-orange-600: oklch(0.585 0.2 41);
+}
+
+/* ---------- 各主题只需要几个变量 ---------- */
+:root[data-theme="ocean"] { --ah: 235; --ac: 0.9; --bh: 200; --nh: 235; --nc: 1; }
+:root[data-theme="forest"] { --ah: 160; --ac: 0.8; --bh: 125; --nh: 160; --nc: 0.6; }
+:root[data-theme="sakura"] { --ah: 355; --ac: 0.95; --bh: 325; --nh: 345; --nc: 0.75; }
+:root[data-theme="sunset"] { --ah: 48; --ac: 0.95; --bh: 15; --nh: 65; --nc: 0.7; }
+:root[data-theme="paper"] {
+  --ah: 62; --ac: 0.62; --bh: 45; --nh: 85; --nc: 1.2;
+  --page: oklch(0.945 calc(0.016 * var(--nc)) var(--nh));
+  --surface: oklch(0.982 calc(0.014 * var(--nc)) var(--nh));
+}
+:root[data-theme="midnight"] { --ah: 277; --ac: 1; --bh: 300; --nh: 268; --nc: 1; }
+:root[data-theme="deepsea"] { --ah: 225; --ac: 0.85; --bh: 185; --nh: 225; --nc: 0.9; }
+:root[data-theme="graphite"] { --ah: 70; --ac: 0.95; --bh: 45; --nh: 70; --nc: 0.45; }
+
+/* ---------- 深色：重新定义明度曲线（主色 600 保持能配白字） ---------- */
+:root[data-mode="dark"] {
+  color-scheme: dark;
+  --page: oklch(0.158 calc(0.014 * var(--nc)) var(--nh));
+  --surface: oklch(0.205 calc(0.016 * var(--nc)) var(--nh));
+  --ink: oklch(0.93 calc(0.012 * var(--nc)) var(--nh));
+  --ink-fg: oklch(0.2 calc(0.02 * var(--nc)) var(--nh));
+  --code-bg: oklch(0.135 calc(0.014 * var(--nc)) var(--nh));
+  --code-fg: oklch(0.9 0.01 var(--nh));
+  --canvas-dot: oklch(0.31 calc(0.016 * var(--nc)) var(--nh));
+
+  --heat-0: oklch(0.27 calc(0.012 * var(--nc)) var(--nh));
+  --heat-1: oklch(0.38 calc(0.09 * var(--ac)) var(--ah));
+  --heat-2: oklch(0.5 calc(0.14 * var(--ac)) var(--ah));
+  --heat-3: oklch(0.63 calc(0.19 * var(--ac)) var(--ah));
+  --heat-4: oklch(0.77 calc(0.2 * var(--ac)) var(--ah));
+
+  --color-indigo-50: oklch(0.265 calc(0.05 * var(--ac)) var(--ah));
+  --color-indigo-100: oklch(0.31 calc(0.075 * var(--ac)) var(--ah));
+  --color-indigo-200: oklch(0.375 calc(0.1 * var(--ac)) var(--ah));
+  --color-indigo-300: oklch(0.48 calc(0.14 * var(--ac)) var(--ah));
+  --color-indigo-400: oklch(0.7 calc(0.17 * var(--ac)) var(--ah));
+  --color-indigo-500: oklch(0.66 calc(0.2 * var(--ac)) var(--ah));
+  --color-indigo-600: oklch(0.58 calc(0.22 * var(--ac)) var(--ah));
+  --color-indigo-700: oklch(0.8 calc(0.12 * var(--ac)) var(--ah));
+  --color-indigo-800: oklch(0.86 calc(0.09 * var(--ac)) var(--ah));
+  --color-indigo-900: oklch(0.91 calc(0.05 * var(--ac)) var(--ah));
+  --color-indigo-950: oklch(0.95 calc(0.03 * var(--ac)) var(--ah));
+
+  --color-violet-50: oklch(0.265 calc(0.05 * var(--ac)) var(--bh));
+  --color-violet-100: oklch(0.31 calc(0.075 * var(--ac)) var(--bh));
+  --color-violet-200: oklch(0.375 calc(0.1 * var(--ac)) var(--bh));
+  --color-violet-300: oklch(0.48 calc(0.14 * var(--ac)) var(--bh));
+  --color-violet-400: oklch(0.7 calc(0.17 * var(--ac)) var(--bh));
+  --color-violet-500: oklch(0.66 calc(0.2 * var(--ac)) var(--bh));
+  --color-violet-600: oklch(0.58 calc(0.22 * var(--ac)) var(--bh));
+  --color-violet-700: oklch(0.8 calc(0.12 * var(--ac)) var(--bh));
+  --color-violet-800: oklch(0.86 calc(0.09 * var(--ac)) var(--bh));
+  --color-violet-900: oklch(0.91 calc(0.05 * var(--ac)) var(--bh));
+
+  --color-slate-50: oklch(0.245 calc(0.016 * var(--nc)) var(--nh));
+  --color-slate-100: oklch(0.275 calc(0.018 * var(--nc)) var(--nh));
+  --color-slate-200: oklch(0.325 calc(0.02 * var(--nc)) var(--nh));
+  --color-slate-300: oklch(0.4 calc(0.024 * var(--nc)) var(--nh));
+  --color-slate-400: oklch(0.62 calc(0.03 * var(--nc)) var(--nh));
+  --color-slate-500: oklch(0.71 calc(0.03 * var(--nc)) var(--nh));
+  --color-slate-600: oklch(0.77 calc(0.026 * var(--nc)) var(--nh));
+  --color-slate-700: oklch(0.83 calc(0.02 * var(--nc)) var(--nh));
+  --color-slate-800: oklch(0.9 calc(0.014 * var(--nc)) var(--nh));
+  --color-slate-900: oklch(0.955 calc(0.008 * var(--nc)) var(--nh));
+  --color-slate-950: oklch(0.985 calc(0.004 * var(--nc)) var(--nh));
+
+  /* 状态色（琥珀 / 翠绿 / 玫红 / 橙 / 天蓝）：浅色保持 Tailwind 默认，深色改成暗底浅字 */
+  --color-amber-50: oklch(0.265 0.045 80); --color-amber-100: oklch(0.31 0.065 80); --color-amber-200: oklch(0.38 0.085 80);
+  --color-amber-300: oklch(0.5 0.115 80); --color-amber-400: oklch(0.72 0.15 80); --color-amber-500: oklch(0.68 0.16 80);
+  --color-amber-600: oklch(0.64 0.16 75); --color-amber-700: oklch(0.8 0.125 80); --color-amber-800: oklch(0.86 0.085 80); --color-amber-900: oklch(0.91 0.05 80);
+
+  --color-emerald-50: oklch(0.265 0.045 160); --color-emerald-100: oklch(0.31 0.065 160); --color-emerald-200: oklch(0.38 0.085 160);
+  --color-emerald-300: oklch(0.5 0.115 160); --color-emerald-400: oklch(0.72 0.15 160); --color-emerald-500: oklch(0.68 0.16 160);
+  --color-emerald-600: oklch(0.62 0.15 160); --color-emerald-700: oklch(0.8 0.125 160); --color-emerald-800: oklch(0.86 0.085 160); --color-emerald-900: oklch(0.91 0.05 160);
+
+  --color-rose-50: oklch(0.265 0.045 15); --color-rose-100: oklch(0.31 0.065 15); --color-rose-200: oklch(0.38 0.085 15);
+  --color-rose-300: oklch(0.5 0.115 15); --color-rose-400: oklch(0.7 0.17 15); --color-rose-500: oklch(0.68 0.19 15);
+  --color-rose-600: oklch(0.64 0.2 15); --color-rose-700: oklch(0.8 0.12 15); --color-rose-800: oklch(0.86 0.085 15); --color-rose-900: oklch(0.91 0.05 15);
+
+  --color-orange-50: oklch(0.265 0.045 50); --color-orange-100: oklch(0.31 0.065 50); --color-orange-200: oklch(0.38 0.085 50);
+  --color-orange-300: oklch(0.5 0.115 50); --color-orange-400: oklch(0.72 0.16 50); --color-orange-500: oklch(0.68 0.17 50);
+  --color-orange-600: oklch(0.64 0.17 48); --color-orange-700: oklch(0.8 0.125 50); --color-orange-800: oklch(0.86 0.085 50); --color-orange-900: oklch(0.91 0.05 50);
+
+  --color-sky-50: oklch(0.265 0.045 235); --color-sky-100: oklch(0.31 0.065 235); --color-sky-200: oklch(0.38 0.085 235);
+  --color-sky-300: oklch(0.5 0.115 235); --color-sky-400: oklch(0.72 0.14 235); --color-sky-500: oklch(0.68 0.15 235);
+  --color-sky-600: oklch(0.62 0.15 235); --color-sky-700: oklch(0.8 0.115 235); --color-sky-800: oklch(0.86 0.08 235); --color-sky-900: oklch(0.91 0.05 235);
+}
+
+/* ==========================================================================
+   字体：每个 --f-* 是一个字体栈；界面字体 / 阅读字体只是挑一个栈
+   ========================================================================== */
+:root {
+  --f-sans: "Inter Variable", "Noto Sans SC Variable", ui-sans-serif, system-ui, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --f-system: system-ui, "Segoe UI", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  --f-serif: "Noto Serif SC Variable", "Songti SC", "SimSun", Georgia, serif;
+  --f-wenkai: "LXGW WenKai", "Kaiti SC", "KaiTi", "Noto Serif SC Variable", serif;
+  --f-kuaile: "ZCOOL KuaiLe", "Noto Sans SC Variable", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", "Noto Sans SC Variable", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --f-code: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, "Noto Sans SC Variable", monospace;
+
+  --font-ui: var(--f-sans);
+  --font-read: var(--font-ui);
+}
+:root[data-font-ui="system"] { --font-ui: var(--f-system); }
+:root[data-font-ui="serif"] { --font-ui: var(--f-serif); }
+:root[data-font-ui="wenkai"] { --font-ui: var(--f-wenkai); }
+:root[data-font-ui="kuaile"] { --font-ui: var(--f-kuaile); }
+:root[data-font-ui="mono"] { --font-ui: var(--f-mono); }
+:root[data-font-read="sans"] { --font-read: var(--f-sans); }
+:root[data-font-read="system"] { --font-read: var(--f-system); }
+:root[data-font-read="serif"] { --font-read: var(--f-serif); }
+:root[data-font-read="wenkai"] { --font-read: var(--f-wenkai); }
+:root[data-font-read="kuaile"] { --font-read: var(--f-kuaile); }
+:root[data-font-read="mono"] { --font-read: var(--f-mono); }
+
+/* 字号：缩放根字号，Tailwind 的 rem 间距/字号会一起缩放 */
+:root[data-size="sm"] { font-size: 14.5px; }
+:root[data-size="lg"] { font-size: 17px; }
+:root[data-size="xl"] { font-size: 18.5px; }
+
+/* 圆角：覆盖 Tailwind 的圆角刻度（rounded-full 不受影响） */
+:root[data-radius="sharp"] {
+  --radius-sm: 0.0625rem; --radius-md: 0.125rem; --radius-lg: 0.1875rem;
+  --radius-xl: 0.25rem; --radius-2xl: 0.375rem; --radius-3xl: 0.5rem;
+}
+:root[data-radius="round"] {
+  --radius-sm: 0.375rem; --radius-md: 0.5rem; --radius-lg: 0.75rem;
+  --radius-xl: 1rem; --radius-2xl: 1.5rem; --radius-3xl: 2rem;
+}
+
+/* ==========================================================================
+   基础
+   ========================================================================== */
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-ui);
+  color: var(--color-slate-800);
+  background-color: var(--page);
+  /* 页面左上 / 右上各一团极淡的主色光晕，让底色不那么“平” */
+  background-image:
+    radial-gradient(900px 420px at 6% -10%, color-mix(in oklab, var(--color-indigo-500) 9%, transparent), transparent 70%),
+    radial-gradient(800px 380px at 100% -6%, color-mix(in oklab, var(--color-violet-500) 7%, transparent), transparent 70%);
+  background-repeat: no-repeat;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: color-mix(in oklab, var(--color-indigo-500) 30%, transparent); }
+
+h1, h2, h3 { text-wrap: balance; letter-spacing: -0.01em; }
+
+@layer base {
+  :focus-visible { outline: 2px solid color-mix(in oklab, var(--color-indigo-500) 65%, transparent); outline-offset: 2px; }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+}
+
+.font-read { font-family: var(--font-read); }
+
+/* 切换主题时让颜色平滑过渡（只在切换的 350ms 内启用，平时不影响性能） */
+html.theme-anim *,
+html.theme-anim *::before,
+html.theme-anim *::after {
+  transition: background-color 0.28s ease, border-color 0.28s ease, color 0.28s ease, fill 0.28s ease,
+    stroke 0.28s ease, box-shadow 0.28s ease !important;
+}
+
+/* ---------- Markdown 渲染（AI 回答、笔记、闪卡） ---------- */
+.md {
+  font-family: var(--font-read);
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--color-slate-700);
+  word-break: break-word;
+}
+.md > * + * { margin-top: 0.55em; }
+.md h1, .md h2, .md h3, .md h4 { font-weight: 650; color: var(--color-slate-800); margin-top: 0.9em; }
+.md h1 { font-size: 1.35em; }
+.md h2 { font-size: 1.2em; }
+.md h3 { font-size: 1.08em; }
+.md ul { list-style: disc; padding-left: 1.3em; }
+.md ol { list-style: decimal; padding-left: 1.3em; }
+.md li + li { margin-top: 0.2em; }
+.md li::marker { color: var(--color-indigo-400); }
+.md strong { color: var(--color-slate-900); font-weight: 650; }
+.md code { font-family: var(--f-code); background: var(--color-slate-100); color: var(--color-indigo-700); padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.88em; }
+.md pre { background: var(--code-bg); color: var(--code-fg); padding: 0.8em 1em; border-radius: 8px; overflow-x: auto; }
+.md pre code { background: none; color: inherit; padding: 0; }
+.md blockquote { border-left: 3px solid var(--color-indigo-200); padding-left: 0.8em; color: var(--color-slate-600); }
+.md table { border-collapse: collapse; width: 100%; font-size: 0.92em; display: block; overflow-x: auto; }
+.md th, .md td { border: 1px solid var(--color-slate-200); padding: 0.3em 0.6em; }
+.md th { background: var(--color-slate-50); }
+.md a { color: var(--color-indigo-600); text-decoration: underline; text-underline-offset: 2px; }
+:root[data-mode="dark"] .md a { color: var(--color-indigo-400); }
+.md hr { border-color: var(--color-slate-200); }
+.md .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.2em 0; }
+
+.term-chip {
+  color: var(--color-indigo-700);
+  background: var(--color-indigo-50);
+  border-bottom: 1.5px dashed var(--color-indigo-400);
+  border-radius: 4px;
+  padding: 0 0.25em;
+  margin: 0 0.05em;
+  cursor: pointer;
+  font-weight: 550;
+  transition: background 0.15s;
+}
+.term-chip:hover { background: var(--color-indigo-100); }
+
+.cite-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.35em;
+  height: 1.35em;
+  font-size: 0.68em;
+  font-weight: 700;
+  color: white;
+  background: var(--color-indigo-500);
+  border-radius: 999px;
+  vertical-align: super;
+  margin: 0 0.1em;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.cite-badge:hover { filter: brightness(1.15) saturate(1.1); }
+
+/* ---------- PDF 阅读器 ---------- */
+.pdf-page { position: relative; margin: 0 auto 14px; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.14); background: white; border-radius: 2px; }
+.pdf-page .textLayer ::selection { background: color-mix(in oklab, var(--color-indigo-500) 32%, transparent); }
+.hl-rect { position: absolute; background: rgba(250, 204, 21, 0.32); mix-blend-mode: multiply; border-radius: 2px; cursor: pointer; z-index: 3; }
+.hl-rect.active { background: rgba(249, 115, 22, 0.45); animation: hl-pulse 1.2s ease-in-out 2; }
+@keyframes hl-pulse { 50% { background: rgba(249, 115, 22, 0.15); } }
+/* 深色主题下把 PDF 页面反色成“夜间阅读”（图片也会反色，可在外观菜单里关掉） */
+:root[data-pdf="inv"] .pdf-page { background: #1b1c20; }
+:root[data-pdf="inv"] .pdf-page canvas { filter: invert(0.9) hue-rotate(180deg); }
+:root[data-pdf="inv"] .hl-rect { mix-blend-mode: screen; background: rgba(250, 204, 21, 0.22); }
+:root[data-pdf="inv"] .hl-rect.active { background: rgba(249, 115, 22, 0.4); }
+.md-flash { animation: md-flash 2.2s ease-out; border-radius: 4px; }
+@keyframes md-flash {
+  0%, 40% { background: color-mix(in oklab, var(--color-amber-400) 40%, transparent); }
+  100% { background: transparent; }
+}
+
+/* ---------- 画布（React Flow v13 用 light-dark() 取色，这里统一接到主题变量） ---------- */
+.react-flow {
+  color-scheme: inherit;
+  --xy-background-color: transparent;
+  --xy-background-pattern-color: var(--canvas-dot);
+  --xy-minimap-background-color: var(--surface);
+  --xy-minimap-mask-background-color: color-mix(in oklab, var(--page) 72%, transparent);
+  --xy-attribution-background-color: transparent;
+  --xy-controls-button-background-color: var(--surface);
+  --xy-controls-button-background-color-hover: var(--color-slate-100);
+  --xy-controls-button-border-color: var(--color-slate-200);
+  --xy-controls-button-color: var(--color-slate-600);
+  --xy-controls-button-color-hover: var(--color-slate-800);
+}
+.react-flow__attribution a { color: var(--color-slate-400); }
+.react-flow__node { font-family: var(--font-ui); }
+.react-flow__node.selected > div {
+  box-shadow: 0 0 0 2px var(--color-indigo-500), 0 8px 24px color-mix(in oklab, var(--color-indigo-600) 24%, transparent);
+}
+.react-flow__handle { width: 9px; height: 9px; background: var(--color-indigo-300); border: 2px solid var(--surface); }
+.react-flow__edge-path { stroke: var(--color-indigo-300); stroke-width: 1.8; }
+.react-flow__edge.selected .react-flow__edge-path { stroke: var(--color-indigo-500); }
+.react-flow__controls { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); border-radius: 10px; overflow: hidden; }
+
+.streaming-caret::after { content: "▍"; animation: blink 1s steps(1) infinite; color: var(--color-indigo-500); }
+@keyframes blink { 50% { opacity: 0; } }
+
+.scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--color-slate-300); border-radius: 6px; }
+.scroll-thin::-webkit-scrollbar-thumb:hover { background: var(--color-slate-400); }
