@@ -142,6 +142,12 @@ _CAPTURE_SCRIPT = """
 """
 
 
+# 无头浏览器的精简启动参数：去掉 GPU 进程、扩展、后台联网和同步（实测 635 → 约 525 MB）
+LEAN_ARGS = ["--disable-gpu", "--disable-extensions", "--disable-background-networking", "--disable-component-update",
+             "--disable-sync", "--no-first-run", "--renderer-process-limit=1",
+             "--disable-features=Translate,OptimizationHints,MediaRouter"]
+
+
 class PlaywrightAuthWorker:
     """同步接口（在独立线程里跑自己的事件循环），便于从 FastAPI 的事件循环里 to_thread 调用。"""
 
@@ -219,7 +225,9 @@ class PlaywrightAuthWorker:
         await self._shutdown()
         self._pw = await async_playwright().start()
         exe = self.cfg.executable_path or find_browser()
-        kwargs = {"headless": headless}
+        kwargs: dict = {"headless": headless}
+        if headless:  # 后台自动刷新用：精简浏览器进程，省约 100 MB（可见窗口保持默认，用户要亲自过验证码）
+            kwargs["args"] = LEAN_ARGS
         if exe:
             kwargs["executable_path"] = exe
         else:
@@ -233,6 +241,8 @@ class PlaywrightAuthWorker:
             self._browser = await self._pw.chromium.launch(**kwargs)
         ctx = await self._browser.new_context(storage_state=state or None, locale="zh-CN")
         await ctx.add_init_script(script=f"({_CAPTURE_SCRIPT})({json.dumps(self.cfg.model_origin)});")
+        if headless:  # 取 token 只需要页面结构，不加载图片 / 媒体 / 字体
+            await ctx.route("**/*", lambda r: r.abort() if r.request.resource_type in ("image", "media", "font") else r.continue_())
         return ctx
 
     async def _visible(self, page, text: str) -> bool:

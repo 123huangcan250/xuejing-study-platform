@@ -198,7 +198,7 @@ class Share:
         items = data.get("dirent_list") or data.get("dirents") or data.get("items") or [] if isinstance(data, dict) else data
         out = []
         for it in items:
-            name = it.get("obj_name") or it.get("name") or ""
+            name = it.get("file_name") or it.get("folder_name") or it.get("obj_name") or it.get("name") or ""
             if not name:
                 continue
             out.append(Entry(name=name, path=posixpath.join(path, name), is_dir=bool(it.get("is_dir")) or it.get("type") == "dir",

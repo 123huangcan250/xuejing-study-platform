@@ -65,21 +65,35 @@ export default function PdfReader({
   const [width, setWidth] = useState(600);
   const [numPages, setNumPages] = useState(0);
   const [ratio, setRatio] = useState(1.414);
+  const [ratios, setRatios] = useState<number[]>([]); // 每一页自己的高宽比（页面尺寸不一定都和第一页相同）
   const [visible, setVisible] = useState<Set<number>>(new Set([1, 2]));
+  const [rendered, setRendered] = useState<Set<number>>(new Set([1, 2])); // 已渲染的页：离开视野后不立刻销毁，避免来回闪烁
   const [active, setActive] = useState<{ page: number; rects: NRect[]; nonce: number } | null>(null);
-  const pendingJump = useRef<{ anchor: Anchor; nonce: number } | null>(null);
+  const doneJump = useRef(0); // 已经执行过的跳转编号：同一个跳转只执行一次
+  const lastPage = useRef(0);
   const showPage = mode !== "trans";
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => setWidth(Math.max(280, el.clientWidth - 32)));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const ro = new ResizeObserver(() => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const w = Math.max(280, el.clientWidth - 32);
+        setWidth((prev) => (Math.abs(prev - w) < 8 ? prev : w));
+      }, 150);
+    });
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      clearTimeout(timer);
+      ro.disconnect();
+    };
   }, []);
 
   const pageW = Math.round(width * zoom);
-  const pageH = Math.round(pageW * ratio);
+  // 每页的预留高度：用该页真实的高宽比，没读到之前用第一页的
+  const hOf = useCallback((p: number) => Math.round(pageW * (ratios[p - 1] ?? ratio)), [pageW, ratios, ratio]);
 
   // 懒渲染：只渲染视口附近的页；同时把“哪些页在视口附近”告诉翻译（优先翻这些页）
   useEffect(() => {
@@ -101,11 +115,23 @@ export default function PdfReader({
     );
     root.querySelectorAll<HTMLElement>("[data-pgwrap]").forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, [numPages, pageH, mode]);
+  }, [numPages, mode]);
 
   useEffect(() => {
     if (mode !== "orig") onVisiblePages?.([...visible].filter((p) => p >= 1 && p <= numPages).sort((a, b) => a - b));
   }, [visible, mode, numPages, onVisiblePages]);
+
+  useEffect(() => {
+    if (!visible.size) return;
+    setRendered((prev) => {
+      const near = [...visible];
+      const lo = Math.min(...near) - 6;
+      const hi = Math.max(...near) + 6;
+      const next = new Set([...prev].filter((p) => p >= lo && p <= hi));
+      near.forEach((p) => next.add(p));
+      return next.size === prev.size && [...next].every((p) => prev.has(p)) ? prev : next;
+    });
+  }, [visible]);
 
   const doJump = useCallback(
     (j: { anchor: Anchor; nonce: number }) => {
@@ -113,16 +139,19 @@ export default function PdfReader({
       const el = root?.querySelector<HTMLElement>(`[data-pgwrap="${j.anchor.page}"]`);
       if (!root || !el) return false;
       const y = showPage ? (j.anchor.rects?.[0]?.y ?? 0) : 0;
-      root.scrollTo({ top: el.offsetTop + y * pageH - 80, behavior: "smooth" });
+      root.scrollTo({ top: el.offsetTop + y * hOf(j.anchor.page) - 80, behavior: "smooth" });
       setActive({ page: j.anchor.page, rects: j.anchor.rects ?? [], nonce: j.nonce });
       return true;
     },
-    [pageH, showPage],
+    [hOf, showPage],
   );
 
   useEffect(() => {
-    if (!jump || jump.anchor.document_id !== documentId) return;
-    if (!numPages || !doJump(jump)) pendingJump.current = jump;
+    if (!jump || jump.anchor.document_id !== documentId || jump.nonce === doneJump.current || !numPages) return;
+    const t = setTimeout(() => {
+      if (doJump(jump)) doneJump.current = jump.nonce;
+    }, 120);
+    return () => clearTimeout(t);
   }, [jump, documentId, numPages, doJump]);
 
   const handleScroll = () => {
@@ -135,7 +164,10 @@ export default function PdfReader({
       if (el.offsetTop <= mid) cur = Number(el.dataset.pgwrap);
       else break;
     }
-    onPageChange?.(cur, numPages);
+    if (cur !== lastPage.current) {
+      lastPage.current = cur;
+      onPageChange?.(cur, numPages);
+    }
   };
 
   const handleMouseUp = () => {
@@ -179,35 +211,43 @@ export default function PdfReader({
   };
 
   return (
-    <div ref={scrollRef} className="scroll-thin relative h-full overflow-auto bg-slate-100 px-4 py-4" onScroll={handleScroll} onMouseUp={handleMouseUp}>
+    <div ref={scrollRef} className="scroll-thin relative h-full overflow-auto bg-slate-100 px-4 py-4 [scrollbar-gutter:stable] [overflow-anchor:auto]" onScroll={handleScroll} onMouseUp={handleMouseUp}>
       <Document
         file={fileUrl(documentId)}
         options={PDF_OPTIONS}
         loading={<div className="p-10 text-center text-sm text-slate-400">正在加载 PDF…</div>}
         error={<div className="p-10 text-center text-sm text-rose-500">PDF 加载失败</div>}
         onLoadSuccess={async (pdf) => {
-          setNumPages(pdf.numPages);
           try {
+            // 先读第一页，立刻有个靠谱的预留高度；再把所有页的真实尺寸读出来（只读尺寸，不渲染，很快）
             const p1 = await pdf.getPage(1);
             const vp = p1.getViewport({ scale: 1 });
             setRatio(vp.height / vp.width);
+            const all: number[] = [];
+            for (let i = 1; i <= pdf.numPages; i += 25) {
+              const part = await Promise.all(
+                Array.from({ length: Math.min(25, pdf.numPages - i + 1) }, async (_, k) => {
+                  const v = (await pdf.getPage(i + k)).getViewport({ scale: 1 });
+                  return v.height / v.width;
+                }),
+              );
+              all.push(...part);
+            }
+            setRatios(all);
           } catch {
-            /* 用默认 A4 比例 */
+            /* 读不到就用第一页（或默认 A4）的比例 */
           }
+          setNumPages(pdf.numPages);
+          lastPage.current = 1;
           onPageChange?.(1, pdf.numPages);
-          if (pendingJump.current) {
-            const j = pendingJump.current;
-            pendingJump.current = null;
-            setTimeout(() => doJump(j), 150);
-          }
         }}
       >
         {Array.from({ length: numPages }, (_, i) => i + 1).map((p) => (
           <div key={p} data-pgwrap={p}>
             {marks?.[p] && <ExamMarks marks={marks[p]} width={showPage ? pageW : Math.min(pageW, 720)} />}
             {showPage && (
-              <div data-page={p} className="pdf-page" style={{ width: pageW, height: pageH }}>
-                {visible.has(p) && <Page pageNumber={p} width={pageW} renderAnnotationLayer={false} renderTextLayer loading={null} />}
+              <div data-page={p} className="pdf-page" style={{ width: pageW, height: hOf(p) }}>
+                {rendered.has(p) && <Page pageNumber={p} width={pageW} renderAnnotationLayer={false} renderTextLayer loading={null} />}
                 {highlights
                   .filter((h) => h.page === p)
                   .flatMap((h) => [

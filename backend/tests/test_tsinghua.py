@@ -1,6 +1,12 @@
 """清华接入的离线测试：模拟时钟 + 假登录工作器 + httpx MockTransport。不访问真实网络。"""
 from __future__ import annotations
 
+import os as _os
+import tempfile as _tempfile
+
+# 测试必须用自己的数据目录：否则单独运行时会读写用户真实的数据库（那里可能已设置访问密码、存着真实资料）
+_os.environ.setdefault("APP_DATA_DIR", _tempfile.mkdtemp(prefix="alp-test-th-"))
+
 import asyncio
 import base64
 import json

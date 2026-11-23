@@ -14,9 +14,14 @@ $backend = Join-Path $root "backend"
 $frontend = Join-Path $root "frontend"
 $py = Join-Path $backend ".venv\Scripts\python.exe"
 $env:PYTHONUTF8 = "1"
+# 生产构建放在单独的 .next-prod：开发服务器（dev.ps1 / 预览）会改写 .next，
+# 曾把正在运行的生产服务的 routes-manifest 覆盖掉导致其崩溃、远程入口被一并关闭（2026-11-20）。
+$env:NEXT_DIST_DIR = ".next-prod"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
+$logFile = Join-Path $backend "data\remote.log"  # 记录何时启动/停止及原因（不含任何密码或 token）
+function Log($msg) { try { Add-Content -Path $logFile -Value ("{0}  {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $msg) -Encoding UTF8 } catch {} }
 
-function Fail($msg) { Write-Host "`n$msg" -ForegroundColor Red; exit 1 }
+function Fail($msg) { Log "失败：$msg"; Write-Host "`n$msg" -ForegroundColor Red; exit 1 }
 function Find-Tailscale {
     $c = Get-Command tailscale -ErrorAction SilentlyContinue
     if ($c) { return $c.Source }
@@ -52,8 +57,12 @@ try {
 
 # 3. 端口与构建
 if ((Port-InUse 3400) -or (Port-InUse 8400)) { Fail "3400 或 8400 端口被占用（可能 dev.ps1 还开着）。请先关闭它们再运行。" }
+if ($SkipBuild -and -not (Test-Path (Join-Path $frontend ".next-prod\BUILD_ID"))) {
+    Write-Host "还没有 .next-prod 生产构建，忽略 -SkipBuild。" -ForegroundColor Yellow
+    $SkipBuild = $false
+}
 if (-not $SkipBuild) {
-    Write-Host "== 构建前端（生产模式）==" -ForegroundColor Cyan
+    Write-Host "== 构建前端（生产模式，输出到 frontend\.next-prod）==" -ForegroundColor Cyan
     Push-Location $frontend; try { npm run build; if ($LASTEXITCODE -ne 0) { Fail "前端构建失败。" } } finally { Pop-Location }
 }
 
@@ -91,10 +100,18 @@ try {
     Push-Location $backend; try { & $py -m app.tsinghua_cli status } catch {} finally { Pop-Location }
     Write-Host "（若清华 token 快到期，出门前请先在本机更新一次；到期更新需要二次验证时，验证窗口只会出现在这台电脑上。）" -ForegroundColor Yellow
 
-    while ($true) { Start-Sleep 5; if ($procs | Where-Object { $_.HasExited }) { Fail "有服务意外退出了。" } }
+    Log "已启动：https://$dns/"
+    $names = @("后端", "前端")
+    while ($true) {
+        Start-Sleep 5
+        for ($i = 0; $i -lt $procs.Count; $i++) {
+            if ($procs[$i].HasExited) { Fail "$($names[$i])服务意外退出了（退出码 $($procs[$i].ExitCode)）。可查看本窗口上方的报错；若是前端，常见原因是生产构建损坏，去掉 -SkipBuild 重新运行即可。" }
+        }
+    }
 } finally {
     if ($ts) { & $ts serve reset *> $null }
     foreach ($p in $procs) { if ($p -and -not $p.HasExited) { Get-CimInstance Win32_Process -Filter "ParentProcessId=$($p.Id)" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } }
     [void][Win32.Power]::SetThreadExecutionState([uint32]2147483648)  # ES_CONTINUOUS：恢复系统默认的休眠策略
+    Log "已关闭远程入口并停止服务"
     Write-Host "已关闭远程入口并停止服务。"
 }

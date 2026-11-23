@@ -51,7 +51,8 @@ export function TransCard({
                 {b.translation}
               </p>
             ) : (
-              <div key={b.id} className="h-4 animate-pulse rounded bg-indigo-100/80" style={{ width: `${40 + (b.id % 5) * 12}%` }} />
+              // 占位高度按原文长度估算（译文通常和原文差不多行数），译文到达时整体高度变化很小，不会把上方内容顶走
+              <div key={b.id} className="animate-pulse rounded bg-indigo-100/80" style={{ height: Math.max(22, Math.ceil(b.text.length / 30) * 26) }} />
             ),
           )}
         </div>

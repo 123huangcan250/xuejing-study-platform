@@ -48,10 +48,20 @@ export function KnowledgePanel({ courseId, courseName, onOpenReader, onGoLibrary
 
   const tree = useMemo(() => (data ? data.tree.filter((c) => docFilter === null || c.document_id === docFilter) : []), [data, docFilter]);
 
-  // 默认：展开到小节（知识点折叠起来，导图不会一上来就铺满屏）
+  // 默认展开层级：看单个课件时，以它为中心、尽量全部铺开；课件很多时只显示一圈章节，点节点上的箭头再往外展开
+  const treeLen = data?.tree.length ?? 0;
   useEffect(() => {
-    if (data && collapsed === null && data.tree.length) setCollapsed(new Set(flat(data.tree).filter((n) => n.level === 2).map((n) => n.id)));
-  }, [data, collapsed]);
+    if (!data || !data.tree.length) return;
+    const chapters = data.tree.filter((c) => docFilter === null || c.document_id === docFilter);
+    const sections = chapters.flatMap((c) => c.children);
+    const topics = sections.reduce((n, s) => n + s.children.length, 0);
+    let next: Set<number>;
+    if (chapters.length === 1) next = topics <= 60 ? new Set() : new Set(sections.map((n) => n.id)); // 单课件：知识点不多就全展开
+    else if (chapters.length + sections.length <= 36) next = new Set(sections.map((n) => n.id)); // 少量课件：章节 + 小节
+    else next = new Set(chapters.map((n) => n.id)); // 很多课件：只显示章节这一圈
+    setCollapsed(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [treeLen, docFilter]);
   const col = collapsed ?? new Set<number>();
   const toggle = useCallback((id: number) => setCollapsed((c) => {
     const n = new Set(c ?? []);
@@ -66,7 +76,6 @@ export function KnowledgePanel({ courseId, courseName, onOpenReader, onGoLibrary
     if (!confirm(`将对 ${force ? n : Math.max(data.docs.slides - data.docs.built, 1)} 份课件做知识梳理。每份课件需要若干次模型调用（页数越多越多），会消耗模型额度。继续？`)) return;
     try {
       await api.post(`/api/courses/${courseId}/knowledge/build`, { force });
-      setCollapsed(null);
       await load();
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "无法开始");

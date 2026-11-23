@@ -59,7 +59,7 @@ class FakeSeafile:
         out = []
         for name, is_dir in sorted(names.items()):
             full = (path.rstrip("/") + "/" + name)
-            out.append({"obj_name": name, "is_dir": is_dir, "size": 0 if is_dir else len(sh["files"][full]), "last_modified": sh["mtime"]})
+            out.append({("folder_name" if is_dir else "file_name"): name, "is_dir": is_dir, "size": 0 if is_dir else len(sh["files"][full]), "last_modified": sh["mtime"]})
         return {"dirent_list": out}
 
     def handler(self, req: httpx.Request) -> httpx.Response:

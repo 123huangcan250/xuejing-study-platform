@@ -92,6 +92,19 @@
 
   /* 橙色 600 在 orange-50 / 白底上对比度偏低（连胜徽章用到），略微压深 */
   --color-orange-600: oklch(0.585 0.2 41);
+
+  /* 思维导图按名字动态取色（var(--color-emerald-500) 这种），而 Tailwind 只会生成源码里用到过的颜色变量，
+     所以这里显式写全（取 Tailwind 默认值），否则没用到的色阶变量不存在，节点会变成透明 */
+  --color-emerald-300: oklch(0.845 0.143 164.978); --color-emerald-400: oklch(0.765 0.177 163.223);
+  --color-emerald-500: oklch(0.696 0.17 162.48); --color-emerald-600: oklch(0.596 0.145 163.225);
+  --color-amber-300: oklch(0.879 0.169 91.605); --color-amber-400: oklch(0.828 0.189 84.429);
+  --color-amber-500: oklch(0.769 0.188 70.08); --color-amber-600: oklch(0.666 0.179 58.318);
+  --color-rose-300: oklch(0.81 0.117 11.638); --color-rose-400: oklch(0.712 0.194 13.428);
+  --color-rose-500: oklch(0.645 0.246 16.439); --color-rose-600: oklch(0.586 0.253 17.585);
+  --color-sky-300: oklch(0.828 0.111 230.318); --color-sky-400: oklch(0.746 0.16 232.661);
+  --color-sky-500: oklch(0.685 0.169 237.323); --color-sky-600: oklch(0.588 0.158 241.966);
+  --color-orange-300: oklch(0.837 0.128 66.29); --color-orange-400: oklch(0.75 0.183 55.934);
+  --color-orange-500: oklch(0.705 0.213 47.604);
 }
 
 /* ---------- 各主题只需要几个变量 ---------- */
