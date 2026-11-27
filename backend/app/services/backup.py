@@ -97,13 +97,17 @@ async def _loop() -> None:
 
 def start() -> None:
     global _task
-    if _task is None or _task.done():
-        _task = asyncio.get_running_loop().create_task(_loop())
+    loop = asyncio.get_running_loop()
+    # 旧任务属于已经结束的事件循环（例如测试里先后创建多个 TestClient）时，它永远不会再运行，直接换新的
+    if _task is None or _task.done() or _task.get_loop() is not loop:
+        _task = loop.create_task(_loop())
 
 
 async def shutdown() -> None:
     global _task
     t, _task = _task, None
-    if t is not None and not t.done():
-        t.cancel()
+    if t is None or t.done():
+        return
+    t.cancel()
+    if t.get_loop() is asyncio.get_running_loop():  # 别的事件循环里的任务没法在这里等待
         await asyncio.gather(t, return_exceptions=True)

@@ -13,6 +13,9 @@ $backend = Join-Path $root "backend"
 $frontend = Join-Path $root "frontend"
 $py = Join-Path $backend ".venv\Scripts\python.exe"
 $env:PYTHONUTF8 = "1"
+# 生产构建放在单独的 .next-prod（与 remote.ps1 共用）：开发服务器（dev.ps1 / 预览）会改写 .next，
+# 共用同一个目录时，开发服务器一启动就会弄坏生产构建。
+$env:NEXT_DIST_DIR = ".next-prod"
 
 function Fail($msg) { Write-Host "`n$msg" -ForegroundColor Red; exit 1 }
 function Port-InUse($port) { return [bool](Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue) }
@@ -20,8 +23,8 @@ function Port-InUse($port) { return [bool](Get-NetTCPConnection -State Listen -L
 if (-not (Test-Path $py)) { Fail "还没有安装后端依赖，请先运行一次 dev.ps1。" }
 if ((Port-InUse 3400) -or (Port-InUse 8400)) { Fail "3400 或 8400 端口被占用（dev.ps1 / remote.ps1 还开着？）。请先关闭它们再运行。" }
 
-if ($Rebuild -or -not (Test-Path (Join-Path $frontend ".next\BUILD_ID"))) {
-    Write-Host "== 构建前端（生产模式，只需要在前端代码改过后做一次）==" -ForegroundColor Cyan
+if ($Rebuild -or -not (Test-Path (Join-Path $frontend ".next-prod\BUILD_ID"))) {
+    Write-Host "== 构建前端（生产模式，输出到 frontend\.next-prod，只需要在前端代码改过后做一次）==" -ForegroundColor Cyan
     Push-Location $frontend; try { npm run build; if ($LASTEXITCODE -ne 0) { Fail "前端构建失败。" } } finally { Pop-Location }
 }
 

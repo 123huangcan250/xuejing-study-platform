@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import clsx from "clsx";
-import { ArrowLeft, BookOpen, ClipboardCheck, Columns2, Layers, Library, ListTree, Network, Search } from "lucide-react";
+import { ArrowLeft, BookOpen, ClipboardCheck, Columns2, Layers, Library, ListTree, Network, PenLine, Search } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { Course } from "@/lib/types";
@@ -16,14 +16,16 @@ import { LibraryPanel } from "@/components/library/LibraryPanel";
 import { SearchPanel } from "@/components/library/SearchPanel";
 import { KnowledgePanel } from "@/components/knowledge/KnowledgePanel";
 import { ExamPanel } from "@/components/exam/ExamPanel";
+import { QuizPanel } from "@/components/quiz/QuizPanel";
 
-type Tab = "explore" | "library" | "knowledge" | "exams" | "cards" | "search";
+type Tab = "explore" | "library" | "knowledge" | "exams" | "quiz" | "cards" | "search";
 
 const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "explore", label: "阅读 · 探索画布", icon: Network },
   { key: "library", label: "资料库", icon: Library },
   { key: "knowledge", label: "知识梳理", icon: ListTree },
   { key: "exams", label: "试卷考点", icon: ClipboardCheck },
+  { key: "quiz", label: "题库练习", icon: PenLine },
   { key: "cards", label: "闪卡复习", icon: Layers },
   { key: "search", label: "检索", icon: Search },
 ];
@@ -145,6 +147,11 @@ export default function CoursePage() {
         {tab === "exams" && (
           <div className="h-full overflow-auto">
             <ExamPanel courseId={courseId} onOpenReader={() => setTab("explore")} onGoLibrary={() => setTab("library")} onGoKnowledge={() => setTab("knowledge")} />
+          </div>
+        )}
+        {tab === "quiz" && (
+          <div className="h-full overflow-auto">
+            <QuizPanel courseId={courseId} onGoKnowledge={() => setTab("knowledge")} onGoExams={() => setTab("exams")} />
           </div>
         )}
         {tab === "cards" && (

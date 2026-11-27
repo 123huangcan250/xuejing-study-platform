@@ -9,13 +9,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .access_mw import AccessMiddleware
-from .api import auth, canvas, cloud, courses, flashcards, knowledge, ocr, system, translation, tsinghua
+from .api import auth, canvas, cloud, courses, flashcards, knowledge, ocr, questions, system, translation, tsinghua
 from .db import init_db
 from .services import backup as backup_svc
 from .services import cloud as cloud_svc
 from .services import exam as exam_svc
 from .services import knowledge as knowledge_svc
 from .services import ocr as ocr_svc
+from .services import questions as questions_svc
+from .services import simulate as simulate_svc
 from .services import translate as translate_svc
 from .services.tsinghua import redact, runtime as tsinghua_runtime
 
@@ -41,6 +43,8 @@ async def lifespan(_app: FastAPI):
         await knowledge_svc.shutdown()
         await exam_svc.shutdown()
         await ocr_svc.shutdown()
+        await questions_svc.shutdown()
+        await simulate_svc.shutdown()
         await cloud_svc.shutdown()
         cloud_svc.clear_cache()
         await tsinghua_runtime.shutdown()
@@ -53,5 +57,5 @@ app.add_middleware(AccessMiddleware)  # 先加的在内层；CORS 在最外层�
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
 
-for r in (system.router, courses.router, canvas.router, flashcards.router, tsinghua.router, translation.router, knowledge.router, cloud.router, auth.router, ocr.router):
+for r in (system.router, courses.router, canvas.router, flashcards.router, tsinghua.router, translation.router, knowledge.router, cloud.router, auth.router, ocr.router, questions.router):
     app.include_router(r)

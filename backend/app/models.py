@@ -207,6 +207,57 @@ class ExamQuestion(SQLModel, table=True):
     created_at: datetime = Field(default_factory=now, sa_type=DateTime)
 
 
+class Question(SQLModel, table=True):
+    """题库里的一道练习题（AI 按知识点出的，或按真题考点仿真出的）。"""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    course_id: int = Field(foreign_key="course.id", index=True, ondelete="CASCADE")
+    node_id: Optional[int] = Field(default=None, index=True)  # 主要对应的 KnowledgeNode（知识点）
+    qtype: str = "choice"  # choice 单选 / multi 多选 / judge 判断 / fill 填空 / short 简答 / calc 计算 / proof 证明
+    stem: str
+    options_json: str = ""  # 选择题的选项（不带 A. 前缀）
+    answer: str = ""  # choice/multi: 字母；judge: 对/错；fill: JSON 数组（每空可有多个可接受写法，用 | 分隔）；其他: 参考答案
+    key_points_json: str = ""  # 主观题的评分要点
+    explanation: str = ""
+    points: float = 0
+    difficulty: int = 3
+    ability: str = ""
+    origin: str = "generated"  # generated 按知识点出 / simulated 真题仿真
+    based_on: Optional[int] = Field(default=None, index=True)  # 仿真题参照的 ExamQuestion.id（只记录考点来源）
+    similarity: Optional[float] = None  # 与所有真题的最大相似度（越低越不像）
+    created_at: datetime = Field(default_factory=now, sa_type=DateTime)
+
+
+class Attempt(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    question_id: int = Field(foreign_key="question.id", index=True, ondelete="CASCADE")
+    course_id: int = Field(index=True)
+    node_id: Optional[int] = Field(default=None, index=True)
+    answer: str = ""
+    score: float = 0  # 0~1
+    graded_by: str = "auto"  # auto 自动判分 / llm 模型评分 / self 自评
+    feedback: str = ""
+    created_at: datetime = Field(default_factory=now, index=True, sa_type=DateTime)
+
+
+class Paper(SQLModel, table=True):
+    """一份仿真模拟卷：结构、考点分布、难度都参照真题，题目是新出的。"""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    course_id: int = Field(foreign_key="course.id", index=True, ondelete="CASCADE")
+    title: str = ""
+    based_on_document: Optional[int] = None
+    duration_min: int = 120
+    created_at: datetime = Field(default_factory=now, sa_type=DateTime)
+
+
+class PaperItem(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    paper_id: int = Field(foreign_key="paper.id", index=True, ondelete="CASCADE")
+    question_id: int = Field(foreign_key="question.id", ondelete="CASCADE")
+    order: int = 0
+    section: str = ""
+    points: float = 0
+
+
 class CloudSource(SQLModel, table=True):
     """一个清华云盘分享链接。提取码不在这里：它只以 DPAPI 密文保存在 data/secure/cloud_<id>.dpapi。"""
     id: Optional[int] = Field(default=None, primary_key=True)

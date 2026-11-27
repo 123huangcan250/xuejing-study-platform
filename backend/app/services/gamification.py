@@ -30,6 +30,7 @@ EVENT_RULES: dict[str, tuple[int, int]] = {
     "NOTE_CREATED": (2, 10),
     "FLASHCARD_CREATED": (2, 30),
     "FLASHCARD_REVIEWED": (3, 150),
+    "QUESTION_ANSWERED": (4, 120),  # 实际 XP 由题库按“首次做对 / 难度”算好传入，这里只管每日上限
 }
 QUESTION_EVENTS = {"HIGHLIGHT_ASKED", "NODE_ASKED", "TERM_EXPLORED", "MERGE_ASKED"}
 
@@ -85,6 +86,10 @@ ACHIEVEMENTS: list[Achievement] = [
                 lambda s: _count(s, select(func.count()).select_from(Flashcard)) >= 30),
     Achievement("hundred_cards", "百卡斩", "累计复习 100 次闪卡", "⚔️", "复习",
                 lambda s: _count(s, select(func.count()).select_from(ReviewLog)) >= 100),
+    Achievement("first_quiz", "初试牛刀", "第一次做题库里的题", "📝", "复习",
+                lambda s: _count(s, select(func.count()).select_from(LearningEvent).where(LearningEvent.type == "QUESTION_ANSWERED")) >= 1),
+    Achievement("quiz_100", "题海拾贝", "累计作答 100 道题", "🌊", "复习",
+                lambda s: _count(s, select(func.count()).select_from(LearningEvent).where(LearningEvent.type == "QUESTION_ANSWERED")) >= 100),
     Achievement("streak_3", "三日热身", "连续学习 3 天", "🔥", "坚持", lambda s: _max_streak_now(s) >= 3),
     Achievement("streak_7", "七日不断电", "连续学习 7 天", "⚡", "坚持", lambda s: _max_streak_now(s) >= 7),
     Achievement("streak_30", "月度常驻", "连续学习 30 天", "🏔️", "坚持", lambda s: _max_streak_now(s) >= 30),

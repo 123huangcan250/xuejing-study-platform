@@ -344,3 +344,100 @@ export interface CloudEntry {
   document_id: number | null;
   kind: DocKind | null;
 }
+
+// ---------------- 题库 / 真题仿真 ----------------
+export type QType = "choice" | "multi" | "judge" | "fill" | "short" | "calc" | "proof";
+
+export interface Quiz {
+  id: number;
+  course_id: number;
+  node_id: number | null;
+  qtype: QType;
+  stem: string;
+  options: string[];
+  blanks?: number;
+  points: number;
+  difficulty: number;
+  ability: string;
+  origin: "generated" | "simulated";
+  based_on: number | null;
+  similarity: number | null;
+  last_score?: number | null;
+  // 揭晓后才有
+  answer?: string;
+  explanation?: string;
+  key_points?: string[];
+}
+
+export interface AttemptResult {
+  graded: boolean;
+  need_self_grade?: boolean;
+  attempt_id?: number;
+  score?: number;
+  correct?: boolean;
+  graded_by?: "auto" | "llm" | "self";
+  feedback?: string;
+  flashcard_created?: boolean;
+  answer: string;
+  correct_answer?: string;
+  explanation: string;
+  key_points: string[];
+  reward?: Reward | null;
+}
+
+export interface JobStatus {
+  state: "idle" | "running" | "done" | "error" | "cancelled";
+  total: number;
+  done: number;
+  created?: number;
+  rejected?: number;
+  error: string;
+  current?: string;
+  paper_id?: number | null;
+}
+
+export interface QuizStats {
+  total: number;
+  simulated: number;
+  answered: number;
+  wrong: number;
+  attempts: number;
+  accuracy: number | null;
+}
+
+export interface MasteryNode {
+  id: number;
+  parent_id: number | null;
+  title: string;
+  importance: number;
+  questions: number;
+  mastery: number | null;
+  attempts: number;
+  last: string | null;
+}
+
+export interface ExamProfile {
+  analyzed: number;
+  by_type: Record<string, number>;
+  by_ability: Record<string, number>;
+  by_difficulty: Record<string, number>;
+  avg_points: number | null;
+  top_nodes: { id: number; title: string; count: number }[];
+  uncovered_key_nodes: { id: number; title: string }[];
+  exams: { document_id: number; name: string; questions: number; total_points: number; sections: { qtype: string; count: number; points: number }[] }[];
+}
+
+export interface PaperBrief {
+  id: number;
+  title: string;
+  created_at: string;
+  duration_min: number;
+}
+
+export interface PaperDetail {
+  id: number;
+  title: string;
+  duration_min: number;
+  total_points: number;
+  items: (Quiz & { order: number; section: string })[];
+}
