@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .access_mw import AccessMiddleware
 from .api import auth, canvas, cloud, courses, flashcards, knowledge, system, translation, tsinghua
 from .db import init_db
+from .services import backup as backup_svc
 from .services import cloud as cloud_svc
 from .services import exam as exam_svc
 from .services import knowledge as knowledge_svc
@@ -26,12 +27,15 @@ async def lifespan(_app: FastAPI):
     init_db()
     cloud_svc.clear_cache()  # 云盘资料的原文件只放在临时缓存里，每次启动都清空
     redact.install()  # uvicorn 的 handler 在此时已就绪，再装一次
+    if os.environ.get("ALP_DISABLE_BACKUP") != "1":
+        backup_svc.start()  # 启动时若超过 20 小时没备份就立刻备份一次，之后每小时检查
     if os.environ.get("ALP_DISABLE_TSINGHUA") != "1":
         await tsinghua_runtime.startup()
     try:
         yield
     finally:
         # 项目退出：停止后台更新任务并关闭登录浏览器，不留常驻进程
+        await backup_svc.shutdown()
         await translate_svc.shutdown()  # 先停掉进行中的后台任务
         await knowledge_svc.shutdown()
         await exam_svc.shutdown()

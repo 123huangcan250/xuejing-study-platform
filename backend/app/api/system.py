@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from ..db import get_session
 from ..models import LearningEvent, TokenUsage
-from ..services import gamification, llm, settings_store
+from ..services import backup, gamification, llm, settings_store
 
 router = APIRouter(prefix="/api", tags=["system"])
 
@@ -72,6 +72,19 @@ def profile(s: Session = Depends(get_session)):
 @router.get("/heatmap")
 def heatmap(days: int = 365, s: Session = Depends(get_session)):
     return gamification.heatmap(s, min(max(days, 7), 730))
+
+
+@router.get("/backups")
+def backups():
+    return backup.list_backups()
+
+
+@router.post("/backups")
+def backup_now():
+    try:
+        return backup.make_backup()
+    except Exception as e:
+        raise HTTPException(500, f"备份失败：{e}")
 
 
 @router.get("/events")
