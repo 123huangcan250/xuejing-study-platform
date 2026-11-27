@@ -452,7 +452,7 @@ def ensure_flashcard(s: Session, q: Question) -> int | None:
 
 
 def mastery_by_node(s: Session, course_id: int) -> dict[int, dict]:
-    """知识点 → {mastery 0~1, attempts, last}。按最近作答加权，再向 0.5 收缩（先验权重 2）。"""
+    """知识点 → {mastery 0~1, attempts, last}。按最近作答加权，再向 0.5 收缩（先验权重 1：全对 1 次约 75%，4 次约 88%）。"""
     rows = s.exec(select(Attempt).where(Attempt.course_id == course_id, Attempt.node_id.is_not(None))  # type: ignore[union-attr]
                   .order_by(Attempt.created_at.desc())).all()
     acc: dict[int, list[Attempt]] = {}
@@ -461,7 +461,7 @@ def mastery_by_node(s: Session, course_id: int) -> dict[int, dict]:
     out = {}
     for nid, lst in acc.items():
         ws = [0.85 ** k for k in range(len(lst))]
-        m = (sum(w * a.score for w, a in zip(ws, lst)) + 1.0) / (sum(ws) + 2.0)
+        m = (sum(w * a.score for w, a in zip(ws, lst)) + 0.5) / (sum(ws) + 1.0)
         out[nid] = {"mastery": round(m, 3), "attempts": len(lst), "last": lst[0].created_at.isoformat()}
     return out
 

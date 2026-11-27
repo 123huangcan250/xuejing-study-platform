@@ -30,6 +30,7 @@ EVENT_RULES: dict[str, tuple[int, int]] = {
     "NOTE_CREATED": (2, 10),
     "FLASHCARD_CREATED": (2, 30),
     "FLASHCARD_REVIEWED": (3, 150),
+    "SPRINT_TASK_DONE": (5, 40),
     "QUESTION_ANSWERED": (4, 120),  # 实际 XP 由题库按“首次做对 / 难度”算好传入，这里只管每日上限
 }
 QUESTION_EVENTS = {"HIGHLIGHT_ASKED", "NODE_ASKED", "TERM_EXPLORED", "MERGE_ASKED"}

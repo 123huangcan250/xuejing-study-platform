@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import clsx from "clsx";
-import { ArrowLeft, BookOpen, ClipboardCheck, Columns2, Layers, Library, ListTree, Network, PenLine, Search } from "lucide-react";
+import { ArrowLeft, BookOpen, ClipboardCheck, Columns2, CalendarClock, Layers, Library, ListTree, Network, PenLine, Search } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { Course } from "@/lib/types";
@@ -16,9 +16,10 @@ import { LibraryPanel } from "@/components/library/LibraryPanel";
 import { SearchPanel } from "@/components/library/SearchPanel";
 import { KnowledgePanel } from "@/components/knowledge/KnowledgePanel";
 import { ExamPanel } from "@/components/exam/ExamPanel";
-import { QuizPanel } from "@/components/quiz/QuizPanel";
+import { QuizPanel, type QuizFocus } from "@/components/quiz/QuizPanel";
+import { SprintPanel } from "@/components/sprint/SprintPanel";
 
-type Tab = "explore" | "library" | "knowledge" | "exams" | "quiz" | "cards" | "search";
+type Tab = "explore" | "library" | "knowledge" | "exams" | "quiz" | "sprint" | "cards" | "search";
 
 const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "explore", label: "阅读 · 探索画布", icon: Network },
@@ -26,6 +27,7 @@ const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "knowledge", label: "知识梳理", icon: ListTree },
   { key: "exams", label: "试卷考点", icon: ClipboardCheck },
   { key: "quiz", label: "题库练习", icon: PenLine },
+  { key: "sprint", label: "考前冲刺", icon: CalendarClock },
   { key: "cards", label: "闪卡复习", icon: Layers },
   { key: "search", label: "检索", icon: Search },
 ];
@@ -36,11 +38,13 @@ export default function CoursePage() {
   const [course, setCourse] = useState<Course | null>(null);
   const [tab, setTab] = useState<Tab>("explore");
   const [split, setSplit] = useState(44);
+  const [focus, setFocus] = useState<QuizFocus | undefined>();
   const { load, docs, readerVisible, canvasVisible, setPanels, jumpTo } = useWorkspace();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const reloadCourse = () => api.get<Course>(`/api/courses/${courseId}`).then(setCourse).catch((e) => toast.error(e.message));
   useEffect(() => {
-    api.get<Course>(`/api/courses/${courseId}`).then(setCourse).catch((e) => toast.error(e.message));
+    void reloadCourse();
     void load(courseId).then(() => {
       // 支持从跨课程检索跳转过来：?doc=1&page=3
       const sp = new URLSearchParams(window.location.search);
@@ -53,7 +57,7 @@ export default function CoursePage() {
     } catch {
       /* ignore */
     }
-  }, [courseId, load, jumpTo]);
+  }, [courseId, load, jumpTo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (tab === "explore" && docs.length === 0 && course && course.stats.documents === 0) setTab("library");
@@ -89,6 +93,7 @@ export default function CoursePage() {
         <div className="flex min-w-0 items-center gap-2">
           <span className="text-xl">{course?.emoji}</span>
           <span className="truncate font-semibold text-slate-800">{course?.name ?? "…"}</span>
+          <ExamChip date={course?.exam_date} onClick={() => setTab("sprint")} />
         </div>
         <div className="ml-4 flex items-center gap-1">
           {TABS.map(({ key, label, icon: Icon }) => (
@@ -151,7 +156,26 @@ export default function CoursePage() {
         )}
         {tab === "quiz" && (
           <div className="h-full overflow-auto">
-            <QuizPanel courseId={courseId} onGoKnowledge={() => setTab("knowledge")} onGoExams={() => setTab("exams")} />
+            <QuizPanel courseId={courseId} onGoKnowledge={() => setTab("knowledge")} onGoExams={() => setTab("exams")} focus={focus} />
+          </div>
+        )}
+        {tab === "sprint" && (
+          <div className="h-full overflow-auto">
+            <SprintPanel
+              courseId={courseId}
+              course={course}
+              onCourseChanged={() => void reloadCourse()}
+              onPractice={(nodeId, mode) => {
+                setFocus({ nodeId, mode, nonce: Date.now() });
+                setTab("quiz");
+              }}
+              onGoCards={() => setTab("cards")}
+              onGoSim={() => {
+                setFocus({ nodeId: null, mode: "sim", nonce: Date.now() });
+                setTab("quiz");
+              }}
+              onGoKnowledge={() => setTab("knowledge")}
+            />
           </div>
         )}
         {tab === "cards" && (
@@ -175,6 +199,17 @@ function ViewBtn({ active, onClick, icon, label }: { active: boolean; onClick: (
     <button onClick={onClick} title={label} className={clsx("flex items-center gap-1 rounded-md px-2 py-1", active ? "bg-surface text-slate-800 shadow-sm" : "text-slate-500")}>
       {icon}
       <span className="hidden xl:inline">{label}</span>
+    </button>
+  );
+}
+
+function ExamChip({ date, onClick }: { date?: string; onClick: () => void }) {
+  if (!date) return null;
+  const days = Math.ceil((new Date(date + "T00:00:00").getTime() - new Date(new Date().toDateString()).getTime()) / 86400000);
+  if (days < 0) return null;
+  return (
+    <button onClick={onClick} title={`考试日期 ${date}，点开看冲刺计划`} className={clsx("shrink-0 rounded-full px-2 py-0.5 text-xs font-medium", days <= 7 ? "bg-rose-50 text-rose-600" : "bg-indigo-50 text-indigo-600")}>
+      {days === 0 ? "今天考试" : `距考试 ${days} 天`}
     </button>
   );
 }

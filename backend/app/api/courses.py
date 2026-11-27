@@ -35,6 +35,8 @@ class CoursePatch(BaseModel):
     description: str | None = None
     emoji: str | None = None
     color: str | None = None
+    exam_date: str | None = None  # "" 表示清除
+    sprint_minutes: int | None = None
 
 
 def _course_stats(s: Session, cid: int) -> dict:
@@ -81,7 +83,17 @@ def patch_course(cid: int, body: CoursePatch, s: Session = Depends(get_session))
     c = s.get(Course, cid)
     if not c:
         raise HTTPException(404, "课程不存在")
-    for k, v in body.model_dump(exclude_none=True).items():
+    data = body.model_dump(exclude_none=True)
+    if "exam_date" in data and data["exam_date"]:
+        from datetime import date
+
+        try:
+            date.fromisoformat(data["exam_date"])
+        except ValueError:
+            raise HTTPException(400, "考试日期格式应为 YYYY-MM-DD") from None
+    if "sprint_minutes" in data:
+        data["sprint_minutes"] = max(20, min(600, data["sprint_minutes"]))
+    for k, v in data.items():
         setattr(c, k, v)
     s.add(c)
     s.commit()

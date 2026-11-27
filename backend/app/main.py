@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .access_mw import AccessMiddleware
-from .api import auth, canvas, cloud, courses, flashcards, knowledge, ocr, questions, system, translation, tsinghua
+from .api import auth, canvas, cloud, courses, flashcards, knowledge, ocr, questions, sprint, system, translation, tsinghua
 from .db import init_db
 from .services import backup as backup_svc
 from .services import cloud as cloud_svc
@@ -57,5 +57,5 @@ app.add_middleware(AccessMiddleware)  # 先加的在内层；CORS 在最外层�
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
 
-for r in (system.router, courses.router, canvas.router, flashcards.router, tsinghua.router, translation.router, knowledge.router, cloud.router, auth.router, ocr.router, questions.router):
+for r in (system.router, courses.router, canvas.router, flashcards.router, tsinghua.router, translation.router, knowledge.router, cloud.router, auth.router, ocr.router, questions.router, sprint.router):
     app.include_router(r)

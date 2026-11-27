@@ -41,6 +41,7 @@ def init_db() -> None:
             )
         )
         _ensure_columns(conn)
+        _ensure_course_columns(conn)
 
 
 def _ensure_columns(conn) -> None:
@@ -56,6 +57,13 @@ def _ensure_columns(conn) -> None:
     ]:
         if name not in cols:
             conn.execute(text(f"ALTER TABLE document ADD COLUMN {name} {ddl}"))
+
+
+def _ensure_course_columns(conn) -> None:
+    cols = {r[1] for r in conn.execute(text("PRAGMA table_info(course)")).all()}
+    for name, ddl in [("exam_date", "VARCHAR NOT NULL DEFAULT ''"), ("sprint_minutes", "INTEGER NOT NULL DEFAULT 90")]:
+        if name not in cols:
+            conn.execute(text(f"ALTER TABLE course ADD COLUMN {name} {ddl}"))
 
 
 def get_session():

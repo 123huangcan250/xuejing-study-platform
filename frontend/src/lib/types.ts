@@ -11,6 +11,8 @@ export interface Course {
   description: string;
   emoji: string;
   color: string;
+  exam_date: string;
+  sprint_minutes: number;
   created_at: string;
   stats: CourseStats;
 }
@@ -440,4 +442,35 @@ export interface PaperDetail {
   duration_min: number;
   total_points: number;
   items: (Quiz & { order: number; section: string })[];
+}
+
+// ---------------- 考前冲刺 ----------------
+export interface SprintTask {
+  kind: "learn" | "review" | "cards" | "wrong" | "mock";
+  key: string;
+  title: string;
+  minutes: number;
+  done: boolean;
+  node_id?: number;
+  chapter?: string;
+  reason?: string;
+  priority?: number;
+}
+
+export interface SprintPlan {
+  configured: boolean;
+  exam_date: string;
+  daily_minutes: number;
+  days_left?: number;
+  passed?: boolean;
+  days?: { date: string; label: string; final: boolean; minutes: number; tasks: SprintTask[] }[];
+  study_days?: number;
+  nodes_total?: number;
+  nodes_done?: number;
+  scheduled?: number;
+  coverage?: number | null;
+  skipped?: { node_id: number; title: string; reason: string }[];
+  skipped_count?: number;
+  no_knowledge?: boolean;
+  tips?: string[];
 }

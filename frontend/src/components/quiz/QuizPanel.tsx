@@ -67,8 +67,17 @@ function JobBar({ st, label, onCancel }: { st: JobStatus; label: string; onCance
   return null;
 }
 
-export function QuizPanel({ courseId, onGoKnowledge, onGoExams }: { courseId: number; onGoKnowledge: () => void; onGoExams: () => void }) {
-  const [view, setView] = useState<View>("practice");
+export interface QuizFocus {
+  nodeId: number | null;
+  mode: "mix" | "wrong" | "sim";
+  nonce: number;
+}
+
+export function QuizPanel({ courseId, onGoKnowledge, onGoExams, focus }: { courseId: number; onGoKnowledge: () => void; onGoExams: () => void; focus?: QuizFocus }) {
+  const [view, setView] = useState<View>(focus?.mode === "sim" ? "sim" : "practice");
+  useEffect(() => {
+    if (focus) setView(focus.mode === "sim" ? "sim" : "practice");
+  }, [focus]);
   const [stats, setStats] = useState<QuizStats | null>(null);
   const [tree, setTree] = useState<KNode[]>([]);
 
@@ -111,7 +120,7 @@ export function QuizPanel({ courseId, onGoKnowledge, onGoExams }: { courseId: nu
         )}
       </div>
 
-      {view === "practice" && <PracticeView courseId={courseId} tree={tree} stats={stats} onAnswered={loadStats} onGoBank={() => setView("bank")} />}
+      {view === "practice" && <PracticeView courseId={courseId} tree={tree} stats={stats} onAnswered={loadStats} onGoBank={() => setView("bank")} preset={focus && focus.mode !== "sim" ? focus : undefined} />}
       {view === "bank" && <BankView courseId={courseId} tree={tree} onChanged={loadStats} onGoKnowledge={onGoKnowledge} />}
       {view === "sim" && <SimView courseId={courseId} onChanged={loadStats} onGoExams={onGoExams} />}
       {view === "boss" && <BossBattle courseId={courseId} tree={tree} onAnswered={loadStats} onGoBank={() => setView("bank")} />}
@@ -121,9 +130,11 @@ export function QuizPanel({ courseId, onGoKnowledge, onGoExams }: { courseId: nu
 
 // ----------------------------------------------------------------- 练习
 function ScopeSelect({ tree, value, onChange }: { tree: KNode[]; value: number | null; onChange: (v: number | null) => void }) {
+  const known = value == null || tree.some((n) => n.id === value);
   return (
     <select value={value ?? ""} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)} className="h-8 max-w-56 rounded-lg border border-slate-200 bg-surface px-2 text-sm text-slate-700">
       <option value="">全部知识点</option>
+      {!known && <option value={value!}>指定知识点</option>}
       {tree.map((n) => (
         <option key={n.id} value={n.id}>
           {n.title}
@@ -133,7 +144,7 @@ function ScopeSelect({ tree, value, onChange }: { tree: KNode[]; value: number |
   );
 }
 
-function PracticeView({ courseId, tree, stats, onAnswered, onGoBank }: { courseId: number; tree: KNode[]; stats: QuizStats | null; onAnswered: () => void; onGoBank: () => void }) {
+function PracticeView({ courseId, tree, stats, onAnswered, onGoBank, preset }: { courseId: number; tree: KNode[]; stats: QuizStats | null; onAnswered: () => void; onGoBank: () => void; preset?: QuizFocus }) {
   const [scope, setScope] = useState<number | null>(null);
   const [mode, setMode] = useState<"mix" | "wrong" | "sim">("mix");
   const [queue, setQueue] = useState<Quiz[] | null>(null);
@@ -141,11 +152,11 @@ function PracticeView({ courseId, tree, stats, onAnswered, onGoBank }: { courseI
   const [score, setScore] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const start = async () => {
+  const start = async (sc: number | null = scope, md: "mix" | "wrong" | "sim" = mode) => {
     setLoading(true);
     try {
-      const qs = mode === "wrong" ? await api.get<Quiz[]>(`/api/courses/${courseId}/questions?status=wrong${scope ? `&node_id=${scope}` : ""}`) : await api.get<Quiz[]>(`/api/courses/${courseId}/practice?count=10${scope ? `&node_id=${scope}` : ""}${mode === "sim" ? "&origin=simulated" : ""}`);
-      if (!qs.length) toast.info(mode === "wrong" ? "没有待攻克的错题 🎉" : "题库里还没有可做的题，先去「题库」生成");
+      const qs = md === "wrong" ? await api.get<Quiz[]>(`/api/courses/${courseId}/questions?status=wrong${sc ? `&node_id=${sc}` : ""}`) : await api.get<Quiz[]>(`/api/courses/${courseId}/practice?count=10${sc ? `&node_id=${sc}` : ""}${md === "sim" ? "&origin=simulated" : ""}`);
+      if (!qs.length) toast.info(md === "wrong" ? "没有待攻克的错题 🎉" : sc ? "这个知识点还没有题：到「题库」里选范围生成" : "题库里还没有可做的题，先去「题库」生成");
       setQueue(qs.slice(0, 10));
       setI(0);
       setScore([]);
@@ -155,6 +166,14 @@ function PracticeView({ courseId, tree, stats, onAnswered, onGoBank }: { courseI
       setLoading(false);
     }
   };
+
+  // 从冲刺计划等地方跳过来：直接带着范围开始
+  useEffect(() => {
+    if (!preset) return;
+    setScope(preset.nodeId);
+    setMode(preset.mode);
+    void start(preset.nodeId, preset.mode);
+  }, [preset?.nonce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!queue || queue.length === 0)
     return (

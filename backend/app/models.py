@@ -18,6 +18,8 @@ class Course(SQLModel, table=True):
     description: str = ""
     emoji: str = "📘"
     color: str = "#6366f1"
+    exam_date: str = ""  # 考试日期 YYYY-MM-DD，设了才会有考前冲刺计划
+    sprint_minutes: int = 90  # 冲刺期间每天能学多少分钟
     created_at: datetime = Field(default_factory=now, sa_type=DateTime)
 
 
@@ -256,6 +258,14 @@ class PaperItem(SQLModel, table=True):
     order: int = 0
     section: str = ""
     points: float = 0
+
+
+class SprintDone(SQLModel, table=True):
+    """冲刺计划里已完成的任务（计划每次按最新掌握度重新排，完成状态单独存）。key 形如 learn:12 / review:12 / wrong:2026-12-20。"""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    course_id: int = Field(foreign_key="course.id", index=True, ondelete="CASCADE")
+    key: str = Field(index=True)
+    done_at: datetime = Field(default_factory=now, sa_type=DateTime)
 
 
 class CloudSource(SQLModel, table=True):
