@@ -139,8 +139,8 @@ def export_pdf(src: Path, blocks: list[DocBlock], tr: dict[int, str]) -> tuple[b
     art_none = getattr(pymupdf, "PDF_REDACT_LINE_ART_NONE", 0)
     by_page: dict[int, list[tuple[DocBlock, str, dict]]] = {}
     for b in blocks:
-        if b.id in tr:
-            by_page.setdefault(b.page, []).append((b, tr[b.id], meta_of(b)))
+        if b.id in tr and "bbox" in (m := meta_of(b)):  # 扫描页识别出的块没有位置，没法原位替换
+            by_page.setdefault(b.page, []).append((b, tr[b.id], m))
     font_obj = pymupdf.Font(fontfile=font) if font else None
     placed = shrunk = overflow = 0
     for pno, items in by_page.items():

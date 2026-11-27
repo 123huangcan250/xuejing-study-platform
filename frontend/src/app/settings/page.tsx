@@ -16,7 +16,7 @@ const TIER_INFO: Record<TierKey, { name: string; desc: string }> = {
   fast: { name: "轻量快速档", desc: "闪卡生成、概念速查等高频轻任务" },
   strong: { name: "强推理档", desc: "画布深度追问、汇总对比（后续：费曼评判、Boss 出题、微课堂）" },
   translate: { name: "翻译档", desc: "文档翻译与划词翻译。留空则依次使用「轻量快速」「强推理」档；推荐选响应快的非推理模型" },
-  vision: { name: "视觉解析档", desc: "扫描版 PDF / 公式截图解析（Phase 4 启用）" },
+  vision: { name: "视觉解析档", desc: "扫描版 PDF 文字识别（公式转 LaTeX），需单独填写支持图片输入的模型（如 Qwen-VL / GLM-4V / GPT-4o）的地址和 Key" },
   embedding: { name: "向量模型", desc: "语义检索；留空则只用 FTS5 关键词检索（DeepSeek 等不提供向量接口时可单独配置其他服务商）" },
 };
 

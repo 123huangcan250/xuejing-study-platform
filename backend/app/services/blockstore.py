@@ -29,6 +29,12 @@ def ensure_blocks(s: Session, doc: Document, reparse: bool = False) -> list[DocB
     from .cloud import ensure_local
 
     parsed = parse_blocks(ensure_local(doc), doc.filetype)
+    if doc.filetype == "pdf":  # 扫描页的识别结果并进来（没有 bbox），按页码稳定排序
+        from .ocr import ocr_block_dicts
+
+        extra = ocr_block_dicts(s, doc.id)
+        if extra:
+            parsed = sorted(parsed + extra, key=lambda b: b["page"])
     rows = [DocBlock(document_id=doc.id, page=b["page"], idx=i, kind=b["kind"], text=b["text"],
                      meta_json=json.dumps(b["meta"], ensure_ascii=False) if b["meta"] else "")
             for i, b in enumerate(parsed)]

@@ -72,6 +72,12 @@ def ingest_document(document_id: int) -> None:
             path = ensure_local(doc)
             if doc.filetype == "pdf":
                 pages, count, empty = parse_pdf(path)
+                from .ocr import ocr_texts
+
+                ocr = ocr_texts(s, doc.id)  # 扫描页若已识别过，用识别出的文字代替空文本层
+                if ocr:
+                    pages = [(n, ocr[n] if n in ocr and len(t.strip()) < 20 else t) for n, t in pages]
+                    empty = [n for n in empty if n not in ocr]
                 doc.page_count = count
                 doc.empty_pages = ",".join(map(str, empty))
             elif doc.filetype in ("docx", "pptx"):
@@ -115,7 +121,7 @@ def ingest_document(document_id: int) -> None:
             doc.status = "ready"
             doc.error = ""
             if doc.filetype == "pdf" and doc.page_count and len(chunks) == 0:
-                doc.error = "未提取到文本，可能是扫描版 PDF（后续版本将支持视觉模型解析）"
+                doc.error = "未提取到文本，可能是扫描版 PDF：在资料库里点「识别文字」，用视觉模型识别"
             s.add(doc)
             items = [(c.id, c.course_id, c.document_id, c.text) for c in chunks]
             s.commit()

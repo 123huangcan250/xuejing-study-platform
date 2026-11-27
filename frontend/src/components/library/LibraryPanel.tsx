@@ -8,6 +8,7 @@ import { useWorkspace } from "@/stores/workspace";
 import { useProfile } from "@/stores/profile";
 import { Button, Card } from "@/components/ui";
 import { CloudPanel } from "./CloudPanel";
+import { OcrControl } from "./OcrControl";
 
 const KINDS: { id: DocKind; name: string; hint: string }[] = [
   { id: "slides", name: "课件", hint: "用于知识梳理和思维导图（课件、讲义、教材章节）" },
@@ -113,6 +114,7 @@ export function LibraryPanel({ courseId, onOpen }: { courseId: number; onOpen: (
                 {d.status === "error" && <span className="text-rose-500">解析失败</span>}
                 {d.error && <span className="ml-2 text-amber-600">{d.error}</span>}
               </div>
+              <OcrControl doc={d} onChanged={() => void refreshDocs()} />
             </div>
             <select
               className="shrink-0 rounded-md border border-slate-200 bg-surface px-1.5 py-1 text-xs text-slate-600"

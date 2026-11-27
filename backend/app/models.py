@@ -153,6 +153,16 @@ class DocBlock(SQLModel, table=True):
     meta_json: str = ""  # PDF: bbox/字号/颜色/页宽高；表格: [表序号, 行, 列]
 
 
+class OcrPage(SQLModel, table=True):
+    """扫描页的视觉模型识别结果（公式为 LaTeX）。单独存放：重新解析资料时不必再花钱识别。text 为空 = 空白页。"""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    document_id: int = Field(foreign_key="document.id", index=True, ondelete="CASCADE")
+    page: int = 1
+    text: str = ""
+    model: str = ""
+    created_at: datetime = Field(default_factory=now, sa_type=DateTime)
+
+
 class Translation(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     document_id: int = Field(foreign_key="document.id", index=True, ondelete="CASCADE")
